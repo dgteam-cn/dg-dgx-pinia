@@ -1,0 +1,17 @@
+{
+    "defaultSeverity": "error",
+    "extends": [
+        "tslint:recommended"
+    ],
+    "jsRules": {},
+    "rules": {
+        "qyotemark": [false],
+        "semicolon": [false],
+        "interface-name": [true, "never-prefix"],
+        "max-file-line-count":[true, 1000],
+        "no-consecutive-blank-lines":[true, 2],
+        "no-console": [false],
+        "no-bitwise": [false]
+    },
+    "rulesDirectory": []
+}
