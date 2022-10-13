@@ -1,15 +1,15 @@
 {
   "name": "@dgteam/dgx-pinia",
   "version": "0.1.0",
-  "description": "",
+  "description": "RESTful style interface data management model",
   "author": "2681137811 <donguayx@qq.com>",
-  "main": "dist/index.js",
-  "module": "src/index.js",
+  "main": "dist/index.cjs.js",
+  "module": "src/index.mjs.js",
   "exports": {
     ".": {
-      "module": "./dist/index.js",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js"
+      "module": "./dist/index.mjs.js",
+      "require": "./dist/index.cjs.js",
+      "import": "./dist/index.mjs.js"
     }
   },
   "scripts": {
