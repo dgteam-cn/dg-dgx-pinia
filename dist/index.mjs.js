@@ -109,7 +109,6 @@ function _toJSON(obj) {
 
 var FETCH = function FETCH(client) {
   var config = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-  console.log('FETCH', this);
   if (typeof config === 'string') config = {
     url: config
   };
@@ -199,7 +198,7 @@ var FETCH = function FETCH(client) {
 
   if (only) updateTableFetchs(function (fetch) {
     return fetch.only === only;
-  }); // 检测是否重复，如果重复则取消之前相同的方法    
+  }); // 检测是否重复，如果重复则取消之前相同的方法
 
   if (!config.headers) config.headers = {}; // 整合请求头
 
@@ -242,14 +241,14 @@ var FETCH = function FETCH(client) {
         // 兼容原生 uni.request
         if (client.httpClientType === 'uniapp' && isArray(res) && res.length === 2) {
           var _res$ = res[1],
-              _data = _res$.data,
+              data = _res$.data,
               headers = _res$.header,
               status = _res$.statusCode;
           res = {
             config: config,
             status: status,
             headers: headers,
-            data: _data
+            data: data
           };
         }
 
@@ -328,8 +327,6 @@ var FETCH = function FETCH(client) {
 var RESTFUL = function RESTFUL(client, table, config) {
   var _this = this;
 
-  console.log('RESTFUL 1', this);
-
   if (_typeof(table) === 'object' && table.name) {
     table = this[table.name];
   }
@@ -369,18 +366,16 @@ var RESTFUL = function RESTFUL(client, table, config) {
         if (config[key] !== undefined) {
           // #1 - 优先从 action 的 fetchData 中获取
           result = config[key];
-        } else {
-          if (opt[method] && opt[method][key] !== undefined) {
-            // #2 否则从 Table 的 options[method] 中获取
-            result = opt[method][key];
-          } else if (opt[key] !== undefined) {
-            // #3 否则从 Table 的 options 中获取
-            result = opt[key];
-          } else if (_typeof(client.defaultConfig) === 'object') {
-            // #4 最终尝试在 client 的静态属性 defaultConfig[method] 中获取
-            if (_typeof(client.defaultConfig[method]) === 'object' && client.defaultConfig[method][key] !== undefined) {
-              result = client.defaultConfig[method][key];
-            }
+        } else if (opt[method] && opt[method][key] !== undefined) {
+          // #2 否则从 Table 的 options[method] 中获取
+          result = opt[method][key];
+        } else if (opt[key] !== undefined) {
+          // #3 否则从 Table 的 options 中获取
+          result = opt[key];
+        } else if (_typeof(client.defaultConfig) === 'object') {
+          // #4 最终尝试在 client 的静态属性 defaultConfig[method] 中获取
+          if (_typeof(client.defaultConfig[method]) === 'object' && client.defaultConfig[method][key] !== undefined) {
+            result = client.defaultConfig[method][key];
           }
         }
 
@@ -390,7 +385,12 @@ var RESTFUL = function RESTFUL(client, table, config) {
       }
 
       if (typeof result === 'function') {
-        result = result(data, opt, Model); // 新增
+        result = result({
+          client: client,
+          table: table,
+          options: opt,
+          config: config
+        }); // 新增（未来考虑支持 await 方式）
       }
 
       return result;
@@ -398,6 +398,7 @@ var RESTFUL = function RESTFUL(client, table, config) {
 
 
     var fetchData = _objectSpread(_objectSpread({}, config), {}, {
+      options: opt,
       method: method,
       table: config.table,
       url: "".concat(opt.url).concat(config.id ? '/' + config.id : ''),
@@ -415,9 +416,7 @@ var RESTFUL = function RESTFUL(client, table, config) {
       // 是否是禁止重复请求
       silent: getRESTfulConfig('silent'),
       // 是否静默加载
-      loading: getRESTfulConfig('loading'),
-      // 是否显示加载中动画 （移动端）
-      customData: getRESTfulConfig('customData') // 自定义对象
+      loading: getRESTfulConfig('loading') // 是否显示加载中动画 （移动端）
 
     }); // 设置查询限制
 
@@ -439,10 +438,6 @@ var RESTFUL = function RESTFUL(client, table, config) {
       if (table.marker !== undefined) {
         fetchData.params.marker = table.marker;
       } else {
-        console.log('MORE', {
-          fetchData: fetchData,
-          table: table
-        });
         fetchData.params.page = table.page + 1;
       }
     } // 封装 vuex 方法方便之后的 table 操作调用
@@ -548,7 +543,7 @@ var RESTFUL = function RESTFUL(client, table, config) {
           tableCtrl.rows.update(res.result);
         }
       },
-      DELETE: function DELETE(res) {
+      DELETE: function DELETE() {
         var interact = getRESTfulConfig('interact');
 
         if (interact) {
@@ -597,12 +592,6 @@ var RESTFUL = function RESTFUL(client, table, config) {
 
 
 var TABLE_UPDATE = function TABLE_UPDATE(client, table, key, value) {
-  console.log('TABLE_UPDATE', this, {
-    table: table,
-    key: key,
-    value: value
-  });
-
   if (typeof key === 'string') {
     client.composition.set(table, key, value);
   } else if (_typeof(key) === 'object' && key !== null) {
@@ -735,7 +724,7 @@ var TABLE_CHECK = function TABLE_CHECK(client, table, active) {
       return TABLE_CHECK_CHANGE(client, table, (_TABLE_CHECK_CHANGE2 = {}, _defineProperty(_TABLE_CHECK_CHANGE2, opt.primaryKey, table.list[active][opt.primaryKey]), _defineProperty(_TABLE_CHECK_CHANGE2, "active", active), _defineProperty(_TABLE_CHECK_CHANGE2, "item", table.list[active]), _TABLE_CHECK_CHANGE2));
     }
 
-    ACTIVE_TABLE_RESET();
+    TABLE_CHECK_RESET();
   }
 }; // 【内部】切换焦点
 
@@ -821,13 +810,14 @@ var DgxClient = /*#__PURE__*/function () {
       };
     }
 
-    this.id = randomString(16);
+    this.id = randomString(24);
     this.isDev = process.env.NODE_ENV === 'development';
     this.version = '0.1.0';
     this.primaryKey = opt.primaryKey;
     this.defaultConfig = opt.defaultConfig;
     this.httpClient = opt.httpClient;
     this.httpClientType = opt.httpClientType;
+    this.stores = {};
     this.enable = opt.enable;
   }
 
@@ -838,7 +828,7 @@ var DgxClient = /*#__PURE__*/function () {
 
       var isDev = this.isDev;
       /**
-       * @param {Object} context.pinia - 使用 `createPinia()` 创建的 pinia 
+       * @param {Object} context.pinia - 使用 `createPinia()` 创建的 pinia
        * @param {Object} context.app - 使用 `createApp()` 创建的当前应用程序（仅限 Vue 3）
        * @param {Object} context.store - 插件正在扩充的 store
        * @param {Object} context.options - 定义存储的选项对象传递给`defineStore()`
@@ -854,10 +844,17 @@ var DgxClient = /*#__PURE__*/function () {
             store = _ref2.store,
             options = _ref2.options;
 
+        // 仅携带 options.tables 参数才会进行拓展，避免污染其他数据
         if (options.tables) {
+          var $id = store.$id;
+          var opts = options.options || {}; // 预留功能：
+
+          client.stores[$id] = {
+            tables: {},
+            options: opts
+          };
           Object.keys(options.tables).forEach(function (name) {
-            // const table = reactive(new DgxTable(name, options.tables[name], client))
-            var table = new DgxTable(name, options.tables[name], client, store);
+            var table = new DgxTable(name, options.tables[name], opts, client, store);
 
             if (isDev) {
               set(store.$state, name, table);
@@ -869,35 +866,34 @@ var DgxClient = /*#__PURE__*/function () {
             }
 
             set(store, name, table);
+            client.stores[$id].tables[name] = table; // 预留功能
+          }); // 设置默认网络请求器
+
+          set(store, 'FETCH', function (config) {
+            return FETCH.call(this, client, config);
           });
         }
-
-        set(store, 'FETCH', function (config) {
-          return FETCH.call(this, client, config);
-        }); // const obj = {
-        //     bbb: 789,
-        //     FETCH: config => FETCH(client, store, config)
-        // }
-        // return Object.keys(options.tables).reduce((obj, name) => {
-        //     obj[name] = new DgxTable(name, options.tables[name], client)
-        //     // set(obj, name, new DgxTable(name, options.tables[name], client))
-        //     return obj
-        // }, obj)
       };
     }
   }]);
 
   return DgxClient;
-}(); // const CLIENT = Symbol('client')
+}(); // export class DgxList extends Array {
+//     constructor(list) {
+//         super()
+//         if (helper.isArray(list) && list.length) {
+//             this.push(...list)
+//         }
+//     }
+// }
+// const CLIENT = Symbol('client')
 
 
 var DgxTable = /*#__PURE__*/function () {
-  function DgxTable(name, config, client, store) {
+  function DgxTable(name, config, opts, client, store) {
     var _this3 = this;
 
     _classCallCheck(this, DgxTable);
-
-    client.composition;
 
     if (typeof config === 'string') {
       config = {
@@ -907,26 +903,9 @@ var DgxTable = /*#__PURE__*/function () {
 
     var opt = Object.assign({
       name: ''
-    }, {
+    }, opts.define, {
       name: name
-    }, config); // this.name = ref(opt.name) //model // 模型名称
-    // this.init = ref(false) // 是否初始化（至少 GET 过一次）
-    // this.error = ref(false) // 最后一 GET 是否错误
-    // this.loading = ref(false) // 当请求队列中 GET 数量大于 0 时返回真
-    // this.editing = ref(false) // 当请求队列中 POST PUT DELETE 数量大于 0 时返回真
-    // this.fetchs = [] // 请求队列
-    // this.page = ref(1) // 当前请求的页码
-    // this.total = ref(undefined)
-    // this.count = ref(undefined)
-    // this.empty = ref(false)
-    // this.filter = reactive({}) // 过滤器缓存
-    // this.list = [] // 数据表
-    // this.marker = ref(undefined) // 下一页地址
-    // this.next = ref(undefined) // 下一页标记          
-    // this.active = ref(undefined) // 焦点在数据的索引
-    // this.item = ref(undefined) // 焦点对象
-    // this.sync_at = ref(undefined)
-
+    }, config);
     this.name = opt.name; //model // 模型名称
 
     this.init = false; // 是否初始化（至少 GET 过一次）
@@ -950,14 +929,18 @@ var DgxTable = /*#__PURE__*/function () {
 
     this.marker = undefined; // 下一页地址
 
-    this.next = undefined; // 下一页标记          
+    this.next = undefined; // 下一页标记
 
     this.active = undefined; // 焦点在数据的索引
 
     this.item = undefined; // 焦点对象
 
-    this.sync_at = undefined;
-    var table = this; // 对象映射
+    this.syncAt = undefined;
+    var table = this;
+    Object.defineProperty(this, '_id', {
+      value: randomString(24)
+    }); // 生成随机字符串作为主键
+    // 对象映射
 
     Object.defineProperty(this, 'client', {
       get: function get() {
@@ -1033,7 +1016,7 @@ var DgxTable = /*#__PURE__*/function () {
           params: params
         })).then(function (res) {
           if (!res.err) {
-            client.composition.set(_this2, 'sync_at', new Date());
+            client.composition.set(_this2, 'syncAt', new Date());
             return _objectSpread(_objectSpread({}, res), {}, {
               filter: filter,
               fetch: true
@@ -1050,9 +1033,9 @@ var DgxTable = /*#__PURE__*/function () {
 
       if (this.list.length === 0) {
         needFetch = true; // 如果列表为空表示则缓存无效
-      } else if (typeof cache === 'number' && this.sync_at && !needFetch) {
+      } else if (typeof cache === 'number' && this.syncAt && !needFetch) {
         // 判断是否缓存超时需要重新拉取
-        var update = new Date(this.sync_at).getTime();
+        var update = new Date(this.syncAt).getTime();
         var expire = update + cache * 1000;
         needFetch = Date.now() > expire; // 如果 当前时间 > 到期时间 需要重新加载
       } else if (strict) {
@@ -1074,10 +1057,7 @@ var DgxTable = /*#__PURE__*/function () {
     };
 
     Object.defineProperty(this, 'getInit', {
-      value: function value(filter) {
-        var opt = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-        return getInitFun.bind(store);
-      }
+      value: getInitFun.bind(store)
     });
     /**
      * 重新加载列表数据
@@ -1334,7 +1314,8 @@ var DgxTable = /*#__PURE__*/function () {
 
     Object.defineProperty(this, 'reset', {
       value: resetFun.bind(store)
-    });
+    }); // ==============================
+
     return this.opt;
   } // 兼容 nuxt 服务端渲染
   // 当 toJSON 类中注释添加方法中的讨论解决了在客户端中设置状态时的问题
@@ -1356,6 +1337,7 @@ var dgx = DgxClient;
 var index = {
   version: version,
   dgx: dgx,
-  DgxClient: DgxClient
+  DgxClient: DgxClient,
+  DgxTable: DgxTable
 };
-export { DgxClient, index as default, dgx, version };
+export { DgxClient, DgxTable, index as default, dgx, version };
