@@ -148,7 +148,7 @@ export class DgxTable {
 
         /**
          * @param {Number} page - 列表页码，默认: 1
-         * @param {Object} filter - 过滤器（筛选参数），不传则默认从 this.Filter 中获取
+         * @param {Object} filter - 过滤器（筛选参数）
          * @param {Object} opt - 参数集，会传递到 FETCH 方法中，可见相关参数说明
          * @param {Boolean} opt.clean - 请求前是否先清空模型 list 数据
          * @param {Any} opt[key] - 其他参数会保留并传递给其他中间件
@@ -181,35 +181,35 @@ export class DgxTable {
          */
         const getInitFun = function(filter, opt = {}) {
             const {cache, strict, immediate, clean} = opt
-            let needFetch = !this.init || Boolean(immediate)
+            let needFetch = !table.init || Boolean(immediate)
             if (typeof filter !== 'object') filter = {}
             const fetchHandle = () => {
-                if (clean) this.reset()
+                if (clean) table.reset()
                 const params = helper.originJSON(filter || {})
-                return RESTFUL.call(this, client, table, {...opt, action: 'GET', table: this.name, params}).then(res => {
+                return RESTFUL.call(this, client, table, {...opt, action: 'GET', table: table.name, params}).then(res => {
                     if (!res.err) {
-                        client.composition.set(this, 'syncAt', new Date())
+                        client.composition.set(table, 'syncAt', new Date())
                         return {...res, filter, fetch: true}
                     }
                     return {...res, result: [], filter, fetch: true}
                 })
             }
-            if (this.list.length === 0) {
+            if (table.list.length === 0) {
                 needFetch = true // 如果列表为空表示则缓存无效
-            } else if (typeof cache === 'number' && this.syncAt && !needFetch) {
+            } else if (typeof cache === 'number' && table.syncAt && !needFetch) {
                 // 判断是否缓存超时需要重新拉取
-                const update = new Date(this.syncAt).getTime()
+                const update = new Date(table.syncAt).getTime()
                 const expire = update + cache * 1000
                 needFetch = Date.now() > expire // 如果 当前时间 > 到期时间 需要重新加载
             } else if (strict) {
                 // 如果是严格的，需要坚持筛选条件
                 try {
-                    needFetch = JSON.stringify(this.filter) !== JSON.stringify(filter)
+                    needFetch = JSON.stringify(table.filter) !== JSON.stringify(filter)
                 } catch (err) {
                     helper.consoleWarn('getInit: filter is invalid.')
                 }
             }
-            return needFetch ? fetchHandle() : Promise.resolve({err: 0, msg: 'cache data', result: this.list, filter: this.filter, fetch: false})
+            return needFetch ? fetchHandle() : Promise.resolve({err: 0, msg: 'cache data', result: table.list, filter: table.filter, fetch: false})
         }
         Object.defineProperty(this, 'getInit', {value: getInitFun.bind(store)})
 
@@ -303,7 +303,7 @@ export class DgxTable {
 
         /**
          * 提交数据行
-         * @param {Object | RowObject} data - 提交数据，不传则默认从 this.Params 中获取
+         * @param {Object | RowObject} data - 提交数据
          * @param {Object} opt - 附加参数
          * @returns {Promise}
          */
@@ -316,7 +316,7 @@ export class DgxTable {
 
         /**
          * 修改数据行
-         * @param {Object | RowObject} data - 提交数据，不传则默认从 this.Params 中获取
+         * @param {Object | RowObject} data - 提交数据
          * @param {Object} opt - 附加参数
          * @returns {Promise}
          */
@@ -336,7 +336,7 @@ export class DgxTable {
 
         /**
          * 删除数据行
-         * @param {Object | RowObject} data - 提交数据，不传则默认从 this.Params 中获取
+         * @param {Object | RowObject} data - 提交数据
          * @param {Object} opt - 参数集
          * @returns {Promise}
          */
@@ -351,7 +351,7 @@ export class DgxTable {
         /**
          * 提交表单
          * 根据是否有主键判断是新增还是修改
-         * @param {Object | RowObject} data - 提交数据，不传则默认从 this.Params 中获取
+         * @param {Object | RowObject} data - 提交数据
          * @param {Object} opt - 参数集
          * @param {Object} opt.callback - 回调函数
          * @returns {Promise}

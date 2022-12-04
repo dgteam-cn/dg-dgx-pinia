@@ -1,6 +1,6 @@
 {
   "name": "@dgteam/dgx-pinia",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "RESTful style interface data management model",
   "author": "2681137811 <donguayx@qq.com>",
   "main": "dist/index.cjs.js",
@@ -14,8 +14,9 @@
   },
   "scripts": {
     "dev": "npx rollup -c rollup.config.js --watch",
+    "start": "npx rollup -c rollup.config.js --watch",
     "build": "node scripts/build.js",
-    "push": "tsc && npm publish --access public",
+    "push": "npm build && npm publish --access public",
     "test": "npx mocha --require intelli-espower-loader test/*",
     "reset": "rimraf node_modules"
   },
@@ -32,8 +33,8 @@
     "@rollup/plugin-replace": "^4.0.0",
     "babel-eslint": "^10.1.0",
     "cross-env": "^7.0.2",
-    "execa": "^5.0.0",
     "eslint": "^7.14.0",
+    "execa": "^5.0.0",
     "rollup-plugin-sourcemaps": "^0.6.3",
     "rollup-plugin-terser": "^7.0.2",
     "rollup-plugin-typescript2": "^0.31.2"

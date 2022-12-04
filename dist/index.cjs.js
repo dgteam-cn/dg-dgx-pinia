@@ -1,5 +1,5 @@
 /*!
- * @dgteam/dgx-pinia v0.1.0
+ * @dgteam/dgx-pinia v0.1.1
  * @author 2681137811 <donguayx@qq.com> 
  * @license MIT
  */
@@ -817,7 +817,7 @@ var DgxClient = /*#__PURE__*/function () {
 
     this.id = randomString(24);
     this.isDev = process.env.NODE_ENV === 'development';
-    this.version = '0.1.0';
+    this.version = '0.1.1';
     this.primaryKey = opt.primaryKey;
     this.defaultConfig = opt.defaultConfig;
     this.httpClient = opt.httpClient;
@@ -960,7 +960,7 @@ var DgxTable = /*#__PURE__*/function () {
 
     /**
      * @param {Number} page - 列表页码，默认: 1
-     * @param {Object} filter - 过滤器（筛选参数），不传则默认从 this.Filter 中获取
+     * @param {Object} filter - 过滤器（筛选参数）
      * @param {Object} opt - 参数集，会传递到 FETCH 方法中，可见相关参数说明
      * @param {Boolean} opt.clean - 请求前是否先清空模型 list 数据
      * @param {Any} opt[key] - 其他参数会保留并传递给其他中间件
@@ -1009,19 +1009,19 @@ var DgxTable = /*#__PURE__*/function () {
           strict = opt.strict,
           immediate = opt.immediate,
           clean = opt.clean;
-      var needFetch = !this.init || Boolean(immediate);
+      var needFetch = !table.init || Boolean(immediate);
       if (_typeof(filter) !== 'object') filter = {};
 
       var fetchHandle = function fetchHandle() {
-        if (clean) _this2.reset();
+        if (clean) table.reset();
         var params = originJSON(filter || {});
         return RESTFUL.call(_this2, client, table, _objectSpread(_objectSpread({}, opt), {}, {
           action: 'GET',
-          table: _this2.name,
+          table: table.name,
           params: params
         })).then(function (res) {
           if (!res.err) {
-            client.composition.set(_this2, 'syncAt', new Date());
+            client.composition.set(table, 'syncAt', new Date());
             return _objectSpread(_objectSpread({}, res), {}, {
               filter: filter,
               fetch: true
@@ -1036,17 +1036,17 @@ var DgxTable = /*#__PURE__*/function () {
         });
       };
 
-      if (this.list.length === 0) {
+      if (table.list.length === 0) {
         needFetch = true; // 如果列表为空表示则缓存无效
-      } else if (typeof cache === 'number' && this.syncAt && !needFetch) {
+      } else if (typeof cache === 'number' && table.syncAt && !needFetch) {
         // 判断是否缓存超时需要重新拉取
-        var update = new Date(this.syncAt).getTime();
+        var update = new Date(table.syncAt).getTime();
         var expire = update + cache * 1000;
         needFetch = Date.now() > expire; // 如果 当前时间 > 到期时间 需要重新加载
       } else if (strict) {
         // 如果是严格的，需要坚持筛选条件
         try {
-          needFetch = JSON.stringify(this.filter) !== JSON.stringify(filter);
+          needFetch = JSON.stringify(table.filter) !== JSON.stringify(filter);
         } catch (err) {
           consoleWarn('getInit: filter is invalid.');
         }
@@ -1055,8 +1055,8 @@ var DgxTable = /*#__PURE__*/function () {
       return needFetch ? fetchHandle() : Promise.resolve({
         err: 0,
         msg: 'cache data',
-        result: this.list,
-        filter: this.filter,
+        result: table.list,
+        filter: table.filter,
         fetch: false
       });
     };
@@ -1183,7 +1183,7 @@ var DgxTable = /*#__PURE__*/function () {
 
     /**
      * 提交数据行
-     * @param {Object | RowObject} data - 提交数据，不传则默认从 this.Params 中获取
+     * @param {Object | RowObject} data - 提交数据
      * @param {Object} opt - 附加参数
      * @returns {Promise}
      */
@@ -1205,7 +1205,7 @@ var DgxTable = /*#__PURE__*/function () {
     });
     /**
      * 修改数据行
-     * @param {Object | RowObject} data - 提交数据，不传则默认从 this.Params 中获取
+     * @param {Object | RowObject} data - 提交数据
      * @param {Object} opt - 附加参数
      * @returns {Promise}
      */
@@ -1244,7 +1244,7 @@ var DgxTable = /*#__PURE__*/function () {
     });
     /**
      * 删除数据行
-     * @param {Object | RowObject} data - 提交数据，不传则默认从 this.Params 中获取
+     * @param {Object | RowObject} data - 提交数据
      * @param {Object} opt - 参数集
      * @returns {Promise}
      */
@@ -1269,7 +1269,7 @@ var DgxTable = /*#__PURE__*/function () {
     /**
      * 提交表单
      * 根据是否有主键判断是新增还是修改
-     * @param {Object | RowObject} data - 提交数据，不传则默认从 this.Params 中获取
+     * @param {Object | RowObject} data - 提交数据
      * @param {Object} opt - 参数集
      * @param {Object} opt.callback - 回调函数
      * @returns {Promise}
@@ -1337,7 +1337,7 @@ var DgxTable = /*#__PURE__*/function () {
   return DgxTable;
 }();
 
-var version = '0.1.0';
+var version = '0.1.1';
 var dgx = DgxClient;
 var index = {
   version: version,
